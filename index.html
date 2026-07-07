@@ -226,13 +226,7 @@ tbody tr:nth-child(even) td{background:var(--g1)}
       <div class="fld"><label>Your Name *</label><input id="fn" placeholder="First Last" oninput="dty()"></div>
       <div class="fld"><label>Program Name *</label><input id="fp" placeholder="Adult Yoga — Fall 2026" oninput="dty()"></div>
       <div class="fld"><label>Dates</label><input id="fd" placeholder="9/8/2026 – 10/13/2026" oninput="dty()"></div>
-      <div class="fld"><label>Season</label><select id="fs" onchange="dty()">
-        <option value="">Select…</option>
-        <option>2025-26 — Fall</option><option>2025-26 — Winter</option><option>2025-26 — Spring</option><option>2025-26 — Summer</option>
-        <option>2026-27 — Fall</option><option>2026-27 — Winter</option><option>2026-27 — Spring</option><option>2026-27 — Summer</option>
-        <option>2027-28 — Fall</option><option>2027-28 — Winter</option><option>2027-28 — Spring</option><option>2027-28 — Summer</option>
-        <option>One-Time / Special Event</option><option>Other</option>
-      </select></div>
+      <div class="fld"><label>Season</label><select id="fs" onchange="dty()"><option value="">Loading…</option></select></div>
       <div class="fld"><label>Status *</label><select id="fst" onchange="calc()">
         <option value="">Select…</option><option>Planned</option><option>In Progress</option><option>Completed</option>
       </select></div>
@@ -559,6 +553,25 @@ const{createClient}=supabase;
 const db=createClient(SUPA_URL,SUPA_KEY);
 
 let currentUser=null,currentOrg='',progs=[],config={rate:45},instMode='dollar',instType='employee',yoyManual={},tplSort='season';
+
+function genSeasons(){
+  const now=new Date(),cur=now.getFullYear();
+  const seasons=['Fall','Winter','Spring','Summer'];
+  let html='<option value="">Select…</option>';
+  for(let y=cur-2;y<=cur+2;y++){
+    const label=y+'-'+(y+1).toString().slice(2);
+    seasons.forEach(s=>html+=`<option>${label} — ${s}</option>`);
+  }
+  html+='<option>One-Time / Special Event</option><option>Other</option>';
+  const el=document.getElementById('fs');if(el)el.innerHTML=html;
+}
+
+function getYoyYears(){
+  const cur=new Date().getFullYear();
+  const yrs=[];
+  for(let y=cur-3;y<=cur;y++) yrs.push(y+'-'+(y+1).toString().slice(2));
+  return yrs;
+}
 const RATES_KEY='rates_v8',CFG_KEY='cfg_v8',YOY_KEY='yoy_v8';
 const DR={"Heights Recreation Center":{"Gym (7,252 sq ft)":174.32,"Creek Room (700 sq ft)":16.83,"Preschool Room (338 sq ft)":8.12,"Park Room (750 sq ft)":18.03,"Aerobic Room (1,938 sq ft)":46.59,"Multi-Purpose Room (2,240 sq ft)":53.85,"Fitness Room (3,000 sq ft)":72.11,"Locker Rooms (700 sq ft)":16.83,"Game Room (888 sq ft)":21.35,"Sauna (100 sq ft)":2.40,"Entire Building":488.09},"Huffhines Recreation Center":{"Gym (7,637 sq ft)":137.45,"Meadows Room - Full (2,515 sq ft)":45.26,"Preschool Room (575 sq ft)":10.35,"Dance Studio (882 sq ft)":15.87,"Huffhines Room (728 sq ft)":13.10,"Fitness Room (1,515 sq ft)":27.27,"Richardson Room (706 sq ft)":12.71,"Entire Building":450.11},"Senior Center":{"Multipurpose Room - Full (2,687 sq ft)":69.84,"Multipurpose Room - Half (1,345 sq ft)":34.96,"Classroom / Group Fitness (1,141 sq ft)":29.66,"Billiards Room (1,468 sq ft)":38.16,"Fitness Room (1,132 sq ft)":29.42,"Dining Room (993 sq ft)":25.81,"Games Area (2,448 sq ft)":63.63,"Classrooms 1-5 Combined (2,885 sq ft)":74.99,"Individual Classroom avg (577 sq ft)":15.00,"Entire Building":506.71},"Gymnastics Center":{"Whole Gym Area (13,416 sq ft)":291.73,"Preschool Room (800 sq ft)":17.40,"Entire Building":312.04},"Tennis Center":{"Pro Shop (1,000 sq ft)":4.78,"1 Tennis Court (2,808 sq ft)":13.43,"2 Tennis Courts (5,616 sq ft)":26.86,"3 Tennis Courts (8,424 sq ft)":40.28,"All Courts":134.28}};
 let RATES=JSON.parse(JSON.stringify(DR));
@@ -633,11 +646,12 @@ async function doSignOut(){
 
 async function onSignIn(user){
   currentUser=user;
-  currentOrg=user.user_metadata?.org_name||user.email;
+  currentOrg='City of Richardson';
   g('authWrap').style.display='none';
   g('appWrap').style.display='block';
-  g('userBadge').textContent=currentOrg;
-  g('appTitle').textContent=(currentOrg||'Cost Recovery Tool');
+  g('userBadge').textContent=user.user_metadata?.full_name||user.email;
+  g('appTitle').textContent='Richardson PARD — Cost Recovery Tool';
+  genSeasons();
   await loadPrograms();
   bldTplList();calc();
   if(g('cfg_rate'))g('cfg_rate').value=config.rate||45;
@@ -942,7 +956,7 @@ function bldSettingsRates(){
 function bldYOY(){
   const DIVS=['Heights Recreation Center','Huffhines Recreation Center','Senior Center','Gymnastics Center','Tennis Center','Aquatics','Athletics / Ball Fields','Recreation Events','Pavilion / Facility Rentals','Corporate Challenge','Other'];
   const MET=[['CR%','cr'],['Gross Revenue','grev'],['Net Revenue','rev'],['Total Cost','cost'],['Scholarships','schol']];
-  const YRS=['2023-24','2024-25','2025-26'];
+  const YRS=getYoyYears();
   function getYr(s){const m=(s||'').match(/(\d{4}-\d{2})/);return m?m[1]:null;}
   function autoCalc(div,met,yr){const matching=compProgs().filter(p=>getYr(p.season)===yr&&p.division===div);if(!matching.length)return null;const tc=matching.reduce((s,p)=>s+(p.totalDirectCost||0),0),nr=matching.reduce((s,p)=>s+(p.netRevenue||0),0),gr=matching.reduce((s,p)=>s+(p.grossRevenue||0),0),sch=matching.reduce((s,p)=>s+(p.scholarships||0),0);switch(met){case'cr':return tc>0?nr/tc:null;case'grev':return gr;case'rev':return nr;case'cost':return tc;case'schol':return sch;}return null;}
   let html='<div style="overflow-x:auto"><table><thead><tr><th>Division</th><th>Metric</th>';
