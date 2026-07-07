@@ -142,6 +142,12 @@ tbody tr:nth-child(even) td{background:var(--g1)}
 <body>
 
 <!-- AUTH SCREEN -->
+<div id="loadingScreen" style="position:fixed;inset:0;background:var(--n);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999">
+  <div style="color:#fff;font-size:16px;font-weight:700;margin-bottom:12px">Richardson PARD</div>
+  <div style="color:rgba(255,255,255,.7);font-size:12px;margin-bottom:24px">Cost Recovery Tool</div>
+  <div style="width:40px;height:40px;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+  <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+</div>
 <div class="auth-wrap" id="authWrap">
   <div class="auth-box">
     <div class="auth-logo">
@@ -657,27 +663,37 @@ async function onSignIn(user){
   if(g('cfg_rate'))g('cfg_rate').value=config.rate||45;
 }
 
-// On page load, check for existing session first (handles refresh)
-(async()=>{
-  const{data:{session}}=await db.auth.getSession();
-  if(session?.user){
-    await onSignIn(session.user);
-  }else{
-    g('appWrap').style.display='none';
-    g('authWrap').style.display='flex';
-  }
-})();
+// Show loading screen until session is confirmed
+function hideLoader(){const l=g('loadingScreen');if(l)l.style.display='none';}
 
-// Then listen for future auth changes (login/logout)
 db.auth.onAuthStateChange(async(event,session)=>{
+  if(event==='INITIAL_SESSION'){
+    if(session?.user){
+      await onSignIn(session.user);
+    }else{
+      g('appWrap').style.display='none';
+      g('authWrap').style.display='flex';
+    }
+    hideLoader();
+  }
   if(event==='SIGNED_IN'&&session?.user){await onSignIn(session.user);}
   if(event==='SIGNED_OUT'){
     currentUser=null;currentOrg='';progs=[];
     g('appWrap').style.display='none';
     g('authWrap').style.display='flex';
     showAuth('signin');
+    hideLoader();
   }
 });
+
+// Safety fallback — hide loader after 5 seconds no matter what
+setTimeout(()=>{
+  hideLoader();
+  if(!currentUser){
+    g('appWrap').style.display='none';
+    g('authWrap').style.display='flex';
+  }
+},5000);
 
 // ── DATA ──────────────────────────────────────────────────────────────
 async function loadPrograms(){
