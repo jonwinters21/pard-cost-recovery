@@ -657,9 +657,26 @@ async function onSignIn(user){
   if(g('cfg_rate'))g('cfg_rate').value=config.rate||45;
 }
 
+// On page load, check for existing session first (handles refresh)
+(async()=>{
+  const{data:{session}}=await db.auth.getSession();
+  if(session?.user){
+    await onSignIn(session.user);
+  }else{
+    g('appWrap').style.display='none';
+    g('authWrap').style.display='flex';
+  }
+})();
+
+// Then listen for future auth changes (login/logout)
 db.auth.onAuthStateChange(async(event,session)=>{
-  if(session?.user){await onSignIn(session.user);}
-  else{g('appWrap').style.display='none';g('authWrap').style.display='flex';}
+  if(event==='SIGNED_IN'&&session?.user){await onSignIn(session.user);}
+  if(event==='SIGNED_OUT'){
+    currentUser=null;currentOrg='';progs=[];
+    g('appWrap').style.display='none';
+    g('authWrap').style.display='flex';
+    showAuth('signin');
+  }
 });
 
 // ── DATA ──────────────────────────────────────────────────────────────
