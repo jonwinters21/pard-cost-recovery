@@ -211,6 +211,15 @@ tbody tr:nth-child(even) td{background:var(--g1)}
     <div class="hdr-t" id="appTitle">Cost Recovery Tool</div>
     <div class="hdr-s">Live Database · Multi-User</div>
   </div>
+  <div class="tabs" id="desktopTabs">
+    <button class="tb on" onclick="ST(this,'calc')">Calculator</button>
+    <button class="tb" onclick="ST(this,'log')">Program Log</button>
+    <button class="tb" onclick="ST(this,'dash')">Dashboard</button>
+    <button class="tb" onclick="ST(this,'ref')">Reference</button>
+    <button class="tb" onclick="ST(this,'yoy')">Year-Over-Year</button>
+    <button class="tb" onclick="ST(this,'recon')">Reconciliation</button>
+    <button class="tb" onclick="ST(this,'settings')">Settings</button>
+  </div>
   <div class="hdr-right">
     <span class="user-badge" id="userBadge"></span>
     <button class="logout-btn" onclick="doSignOut()">Sign Out</button>
